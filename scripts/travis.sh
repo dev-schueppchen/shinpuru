@@ -5,6 +5,8 @@ BUILDPATH="./build"
 BUILDNAME="shinpuru"
 #########
 
+source scripts/getsqlschemes.bash
+
 TAG=$(git describe --tags)
 if [ "$TAG" == "" ]; then
     TAG="untagged"
@@ -34,14 +36,20 @@ for BUILD in ${BUILDS[*]}; do
         go build \
             -o ${BUILDPATH}/${BUILDNAME}_${OS}_$ARCH \
             -ldflags " \
-                -X github.com/zekroTJA/shinpuru/util.AppVersion=$TAG \
-                -X github.com/zekroTJA/shinpuru/util.AppCommit=$COMMIT \
-                -X github.com/zekroTJA/shinpuru/util.Release=TRUE")
+                -X github.com/zekroTJA/shinpuru/internal/util.AppVersion=$TAG \
+                -X github.com/zekroTJA/shinpuru/internal/util.AppCommit=$COMMIT \
+                -X github.com/zekroTJA/shinpuru/internal/util.Release=TRUE \
+                $SQLLDFLAGS" \
+                ./cmd/shinpuru)
+            
 
     if [ "$OS" = "windows" ]; then
         mv ${BUILDPATH}/${BUILDNAME}_windows_$ARCH $BUILDPATH/${BUILDNAME}_windows_${ARCH}.exe
     fi
 
 done
+
+echo "Exporting commands manual..."
+go run ./cmd/cmdman -o ./docs/commandsManual.md
 
 wait
