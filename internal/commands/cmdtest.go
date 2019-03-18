@@ -1,9 +1,5 @@
 package commands
 
-import (
-	"errors"
-)
-
 type CmdTest struct {
 }
 
@@ -30,5 +26,8 @@ func (c *CmdTest) GetPermission() int {
 func (c *CmdTest) SetPermission(permLvl int) {}
 
 func (c *CmdTest) Exec(args *CommandArgs) error {
-	return errors.New("test error")
+	// fmt.Println(args.Session.Channel("549575608074502174"))
+
+	// return args.CmdHandler.bck.RestoreBackup(args.Guild.ID, "6499313859982409728", )
+	return args.CmdHandler.bck.HardFlush(args.Guild.ID)
 }

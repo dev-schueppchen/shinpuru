@@ -1,6 +1,7 @@
 .vsc/*
 .vscode/*
 private.*
-build/*
+bin/*
 *.exe
 *.db
+guildBackups/*

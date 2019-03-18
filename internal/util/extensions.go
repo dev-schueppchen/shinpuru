@@ -18,6 +18,23 @@ func EnsureNotEmpty(str, def string) string {
 	return str
 }
 
+func ByteCountFormatter(bc uint64) string {
+	f1k := float64(1024)
+	if bc < 1024 {
+		return fmt.Sprintf("%d B", bc)
+	}
+	if bc < 1024*1024 {
+		return fmt.Sprintf("%.3f kiB", float64(bc)/f1k)
+	}
+	if bc < 1024*1024*1024 {
+		return fmt.Sprintf("%.3f MiB", float64(bc)/f1k/f1k)
+	}
+	if bc < 1024*1024*1024*1024 {
+		return fmt.Sprintf("%.3f GiB", float64(bc)/f1k/f1k/f1k)
+	}
+	return fmt.Sprintf("%.3f TiB", float64(bc)/f1k/f1k/f1k/f1k)
+}
+
 func BoolAsString(cond bool, ifTrue, ifFalse string) string {
 	if cond {
 		return ifTrue
@@ -34,8 +51,8 @@ func IndexOfStrArray(str string, arr []string) int {
 	return -1
 }
 
-func GetMessageLink(msg *discordgo.Message) string {
-	return fmt.Sprintf("https://discordapp.com/channels/%s/%s/%s", msg.GuildID, msg.ChannelID, msg.ID)
+func GetMessageLink(msg *discordgo.Message, guildID string) string {
+	return fmt.Sprintf("https://discordapp.com/channels/%s/%s/%s", guildID, msg.ChannelID, msg.ID)
 }
 
 func GetDiscordSnowflakeCreationTime(snowflake string) (time.Time, error) {
@@ -45,6 +62,32 @@ func GetDiscordSnowflakeCreationTime(snowflake string) (time.Time, error) {
 	}
 	timestamp := (sfI >> 22) + 1420070400000
 	return time.Unix(timestamp/1000, timestamp), nil
+}
+
+// RolePosDiff : m1 position - m2 position
+func RolePosDiff(m1 *discordgo.Member, m2 *discordgo.Member, g *discordgo.Guild) int {
+	m1MaxPos, m2MaxPos := -1, -1
+	rolePositions := make(map[string]int)
+
+	for _, rG := range g.Roles {
+		rolePositions[rG.ID] = rG.Position
+	}
+
+	for _, r := range m1.Roles {
+		p := rolePositions[r]
+		if p < m1MaxPos || m1MaxPos == -1 {
+			m1MaxPos = p
+		}
+	}
+
+	for _, r := range m2.Roles {
+		p := rolePositions[r]
+		if p < m2MaxPos || m2MaxPos == -1 {
+			m2MaxPos = p
+		}
+	}
+
+	return m1MaxPos - m2MaxPos
 }
 
 func DeleteMessageLater(s *discordgo.Session, msg *discordgo.Message, duration time.Duration) {

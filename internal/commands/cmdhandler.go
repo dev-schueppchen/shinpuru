@@ -9,8 +9,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
+
+	"github.com/zekroTJA/timedmap"
+
 	"github.com/zekroTJA/shinpuru/internal/core"
 	"github.com/zekroTJA/shinpuru/internal/util"
+)
+
+const (
+	notifiedCmdsCleanupDelay = 5 * time.Minute
+	notifiedCmdsExpireTime   = 6 * time.Hour
 )
 
 type CmdHandler struct {
@@ -18,14 +27,20 @@ type CmdHandler struct {
 	registeredCmdInstances []Command
 	db                     core.Database
 	config                 *core.Config
+	tnw                    *core.TwitchNotifyWorker
+	bck                    *core.GuildBackups
+	notifiedCmdMsgs        *timedmap.TimedMap
 }
 
-func NewCmdHandler(db core.Database, config *core.Config) *CmdHandler {
+func NewCmdHandler(s *discordgo.Session, db core.Database, config *core.Config, tnw *core.TwitchNotifyWorker) *CmdHandler {
 	return &CmdHandler{
 		registeredCmds:         make(map[string]Command),
 		registeredCmdInstances: make([]Command, 0),
 		db:                     db,
 		config:                 config,
+		tnw:                    tnw,
+		bck:                    core.NewGuildBackups(s, db),
+		notifiedCmdMsgs:        timedmap.New(notifiedCmdsCleanupDelay),
 	}
 }
 
@@ -110,4 +125,12 @@ func (c *CmdHandler) ExportCommandManual(fileName string) error {
 		}
 	}
 	return ioutil.WriteFile(fileName, []byte(document), 0644)
+}
+
+func (c *CmdHandler) AddNotifiedCommandMsg(msgID string) {
+	c.notifiedCmdMsgs.Set(msgID, struct{}{}, notifiedCmdsExpireTime)
+}
+
+func (c *CmdHandler) GetNotifiedCommandMsgs() *timedmap.TimedMap {
+	return c.notifiedCmdMsgs
 }

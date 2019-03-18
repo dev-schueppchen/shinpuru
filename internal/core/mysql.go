@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/zekroTJA/shinpuru/internal/util"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/bwmarrin/snowflake"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -130,6 +132,15 @@ func (m *MySql) SetGuildNotifyRole(guildID, roleID string) error {
 	return m.setGuildSetting(guildID, "notifyRoleID", roleID)
 }
 
+func (m *MySql) GetGuildGhostpingMsg(guildID string) (string, error) {
+	val, err := m.getGuildSetting(guildID, "ghostPingMsg")
+	return val, err
+}
+
+func (m *MySql) SetGuildGhostpingMsg(guildID, msg string) error {
+	return m.setGuildSetting(guildID, "ghostPingMsg", msg)
+}
+
 func (m *MySql) GetMemberPermissionLevel(s *discordgo.Session, guildID string, memberID string) (int, error) {
 	guildPerms, err := m.GetGuildPermissions(guildID)
 	if err != nil {
@@ -149,6 +160,28 @@ func (m *MySql) GetMemberPermissionLevel(s *discordgo.Session, guildID string, m
 		}
 	}
 	return maxPermLvl, err
+}
+
+func (m *MySql) GetGuildJdoodleKey(guildID string) (string, error) {
+	val, err := m.getGuildSetting(guildID, "jdoodleToken")
+	return val, err
+}
+
+func (m *MySql) SetGuildJdoodleKey(guildID, key string) error {
+	return m.setGuildSetting(guildID, "jdoodleToken", key)
+}
+
+func (m *MySql) GetGuildBackup(guildID string) (bool, error) {
+	val, err := m.getGuildSetting(guildID, "backup")
+	return val != "", err
+}
+
+func (m *MySql) SetGuildBackup(guildID string, enabled bool) error {
+	var val string
+	if enabled {
+		val = "1"
+	}
+	return m.setGuildSetting(guildID, "backup", val)
 }
 
 func (m *MySql) GetGuildPermissions(guildID string) (map[string]int, error) {
@@ -216,6 +249,23 @@ func (m *MySql) AddReport(rep *util.Report) error {
 	_, err := m.DB.Exec("INSERT INTO reports (id, type, guildID, executorID, victimID, msg) VALUES (?, ?, ?, ?, ?, ?)",
 		rep.ID, rep.Type, rep.GuildID, rep.ExecutorID, rep.VictimID, rep.Msg)
 	return err
+}
+
+func (m *MySql) DeleteReport(id snowflake.ID) error {
+	_, err := m.DB.Exec("DELETE FROM reports WHERE id = ?", id)
+	return err
+}
+
+func (m *MySql) GetReport(id snowflake.ID) (*util.Report, error) {
+	rep := new(util.Report)
+
+	row := m.DB.QueryRow("SELECT * FROM reports WHERE id = ?", id)
+	err := row.Scan(&rep.ID, &rep.Type, &rep.GuildID, &rep.ExecutorID, &rep.VictimID, &rep.Msg)
+	if err == sql.ErrNoRows {
+		return nil, ErrDatabaseNotFound
+	}
+
+	return rep, err
 }
 
 func (m *MySql) GetReportsGuild(guildID string) ([]*util.Report, error) {
@@ -307,20 +357,6 @@ func (m *MySql) DeleteVote(voteID string) error {
 	return err
 }
 
-// func (m *MySql) SetVotes(updatedVotes []*util.Vote) error {
-// 	dbVotes, err := m.GetVotes()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	toDelete := make(map[string]*util.Vote)
-// 	for _, dbV := range dbVotes {
-
-// 	}
-
-// 	return nil
-// }
-
 func (m *MySql) GetMuteRoles() (map[string]string, error) {
 	rows, err := m.DB.Query("SELECT guildID, muteRoleID FROM guilds")
 	results := make(map[string]string)
@@ -330,7 +366,7 @@ func (m *MySql) GetMuteRoles() (map[string]string, error) {
 	for rows.Next() {
 		var guildID, roleID string
 		err = rows.Scan(&guildID, &roleID)
-		if err != nil {
+		if err == nil {
 			results[guildID] = roleID
 		}
 	}
@@ -344,4 +380,120 @@ func (m *MySql) GetMuteRoleGuild(guildID string) (string, error) {
 
 func (m *MySql) SetMuteRole(guildID, roleID string) error {
 	return m.setGuildSetting(guildID, "muteRoleID", roleID)
+}
+
+func (m *MySql) GetTwitchNotify(twitchUserID, guildID string) (*TwitchNotifyDBEntry, error) {
+	t := &TwitchNotifyDBEntry{
+		TwitchUserID: twitchUserID,
+		GuildID:      guildID,
+	}
+	err := m.DB.QueryRow("SELECT channelID FROM twitchnotify WHERE twitchUserID = ? AND guildID = ?",
+		twitchUserID, guildID).Scan(&t.ChannelID)
+	if err == sql.ErrNoRows {
+		err = ErrDatabaseNotFound
+	}
+	return t, err
+}
+
+func (m *MySql) SetTwitchNotify(twitchNotify *TwitchNotifyDBEntry) error {
+	res, err := m.DB.Exec("UPDATE twitchnotify SET channelID = ? WHERE twitchUserID = ? AND guildID = ?",
+		twitchNotify.TwitchUserID, twitchNotify.GuildID)
+	if err != nil {
+		return err
+	}
+	if ar, err := res.RowsAffected(); ar == 0 {
+		if err != nil {
+			return err
+		}
+		_, err := m.DB.Exec("INSERT INTO twitchnotify (twitchUserID, guildID, channelID) VALUES (?, ?, ?)",
+			twitchNotify.TwitchUserID, twitchNotify.GuildID, twitchNotify.ChannelID)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	return err
+}
+
+func (m *MySql) DeleteTwitchNotify(twitchUserID, guildID string) error {
+	_, err := m.DB.Exec("DELETE FROM twitchnotify WHERE twitchUserID = ? AND guildID = ?", twitchUserID, guildID)
+	return err
+}
+
+func (m *MySql) GetAllTwitchNotifies(twitchUserID string) ([]*TwitchNotifyDBEntry, error) {
+	query := "SELECT twitchUserID, guildID, channelID FROM twitchnotify"
+	if twitchUserID != "" {
+		query += " WHERE twitchUserID = " + twitchUserID
+	}
+	rows, err := m.DB.Query(query)
+	results := make([]*TwitchNotifyDBEntry, 0)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		t := new(TwitchNotifyDBEntry)
+		err = rows.Scan(&t.TwitchUserID, &t.GuildID, &t.ChannelID)
+		if err == nil {
+			results = append(results, t)
+		}
+	}
+	return results, nil
+}
+
+func (m *MySql) AddBackup(guildID, fileID string) error {
+	timestamp := time.Now().Unix()
+	_, err := m.DB.Exec("INSERT INTO backups (guildID, timestamp, fileID) VALUES (?, ?, ?)", guildID, timestamp, fileID)
+	return err
+}
+
+func (m *MySql) DeleteBackup(guildID, fileID string) error {
+	_, err := m.DB.Exec("DELETE FROM backups WHERE guildID = ? AND fileID = ?", guildID, fileID)
+	return err
+}
+
+func (m *MySql) GetBackups(guildID string) ([]*BackupEntry, error) {
+	rows, err := m.DB.Query("SELECT * FROM backups WHERE guildID = ?", guildID)
+	if err == sql.ErrNoRows {
+		return nil, ErrDatabaseNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	backups := make([]*BackupEntry, 0)
+	for rows.Next() {
+		be := new(BackupEntry)
+		var timeStampUnix int64
+		err = rows.Scan(&be.GuildID, &timeStampUnix, &be.FileID)
+		if err != nil {
+			return nil, err
+		}
+		be.Timestamp = time.Unix(timeStampUnix, 0)
+		backups = append(backups, be)
+	}
+
+	return backups, nil
+}
+
+func (m *MySql) GetBackupGuilds() ([]string, error) {
+	rows, err := m.DB.Query("SELECT guildID FROM guilds WHERE backup = '1'")
+	if err == sql.ErrNoRows {
+		return nil, ErrDatabaseNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	guilds := make([]string, 0)
+	for rows.Next() {
+		var s string
+		err = rows.Scan(&s)
+		if err != nil {
+			return nil, err
+		}
+		guilds = append(guilds, s)
+	}
+
+	return guilds, err
 }

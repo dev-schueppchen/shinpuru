@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/bwmarrin/snowflake"
 	"github.com/zekroTJA/shinpuru/internal/util"
 )
 
@@ -33,10 +34,21 @@ type Database interface {
 	GetGuildNotifyRole(guildID string) (string, error)
 	SetGuildNotifyRole(guildID, roleID string) error
 
+	GetGuildGhostpingMsg(guildID string) (string, error)
+	SetGuildGhostpingMsg(guildID, msg string) error
+
 	GetGuildPermissions(guildID string) (map[string]int, error)
 	SetGuildRolePermission(guildID, roleID string, permLvL int) error
 
+	GetGuildJdoodleKey(guildID string) (string, error)
+	SetGuildJdoodleKey(guildID, key string) error
+
+	GetGuildBackup(guildID string) (bool, error)
+	SetGuildBackup(guildID string, enabled bool) error
+
 	AddReport(rep *util.Report) error
+	DeleteReport(id snowflake.ID) error
+	GetReport(id snowflake.ID) (*util.Report, error)
 	GetReportsGuild(guildID string) ([]*util.Report, error)
 	GetReportsFiltered(guildID, memberID string, repType int) ([]*util.Report, error)
 
@@ -46,13 +58,23 @@ type Database interface {
 	SetSetting(setting, value string) error
 
 	GetVotes() (map[string]*util.Vote, error)
-	// SetVotes(votes []*util.Vote) error
+
 	AddUpdateVote(votes *util.Vote) error
 	DeleteVote(voteID string) error
 
 	GetMuteRoles() (map[string]string, error)
 	GetMuteRoleGuild(guildID string) (string, error)
 	SetMuteRole(guildID, roleID string) error
+
+	GetAllTwitchNotifies(twitchUserID string) ([]*TwitchNotifyDBEntry, error)
+	GetTwitchNotify(twitchUserID, guildID string) (*TwitchNotifyDBEntry, error)
+	SetTwitchNotify(twitchNotify *TwitchNotifyDBEntry) error
+	DeleteTwitchNotify(twitchUserID, guildID string) error
+
+	AddBackup(guildID, fileID string) error
+	DeleteBackup(guildID, fileID string) error
+	GetBackups(guildID string) ([]*BackupEntry, error)
+	GetBackupGuilds() ([]string, error)
 }
 
 func IsErrDatabaseNotFound(err error) bool {
