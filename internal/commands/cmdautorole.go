@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/zekroTJA/shinpuru/internal/core"
@@ -22,7 +23,8 @@ func (c *CmdAutorole) GetDescription() string {
 
 func (c *CmdAutorole) GetHelp() string {
 	return "`autorole` - display currently set autorole\n" +
-		"`autorole <roleResolvable>` - set an auto role for the current guild"
+		"`autorole <roleResolvable>` - set an auto role for the current guild\n" +
+		"`autorole reset` - disable autorole"
 }
 
 func (c *CmdAutorole) GetGroup() string {
@@ -56,6 +58,16 @@ func (c *CmdAutorole) Exec(args *CommandArgs) error {
 		}
 		_, err = util.SendEmbed(args.Session, args.Channel.ID,
 			fmt.Sprintf("Currently, <@&%s> is set as auto role.", currAutoRoleID), "", 0)
+		return err
+	}
+
+	if strings.ToLower(args.Args[0]) == "reset" {
+		err := args.CmdHandler.db.SetGuildAutoRole(args.Guild.ID, "")
+		if err != nil {
+			return err
+		}
+		_, err = util.SendEmbed(args.Session, args.Channel.ID,
+			"Autorole reseted.", "", util.ColorEmbedUpdated)
 		return err
 	}
 

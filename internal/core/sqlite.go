@@ -258,7 +258,7 @@ func (m *Sqlite) DeleteReport(id snowflake.ID) error {
 func (m *Sqlite) GetReport(id snowflake.ID) (*util.Report, error) {
 	rep := new(util.Report)
 
-	row := m.DB.QueryRow("SELECT * FROM reports WHERE id = ?", id)
+	row := m.DB.QueryRow("SELECT id, type, guildID, executorID, victimID, msg FROM reports WHERE id = ?", id)
 	err := row.Scan(&rep.ID, &rep.Type, &rep.GuildID, &rep.ExecutorID, &rep.VictimID, &rep.Msg)
 	if err == sql.ErrNoRows {
 		return nil, ErrDatabaseNotFound
@@ -268,7 +268,7 @@ func (m *Sqlite) GetReport(id snowflake.ID) (*util.Report, error) {
 }
 
 func (m *Sqlite) GetReportsGuild(guildID string) ([]*util.Report, error) {
-	rows, err := m.DB.Query("SELECT * FROM reports WHERE guildID = ?", guildID)
+	rows, err := m.DB.Query("SELECT id, type, guildID, executorID, victimID, msg FROM reports WHERE guildID = ?", guildID)
 	var results []*util.Report
 	if err != nil {
 		return nil, err
@@ -285,7 +285,7 @@ func (m *Sqlite) GetReportsGuild(guildID string) ([]*util.Report, error) {
 }
 
 func (m *Sqlite) GetReportsFiltered(guildID, memberID string, repType int) ([]*util.Report, error) {
-	query := fmt.Sprintf(`SELECT * FROM reports WHERE guildID = "%s"`, guildID)
+	query := fmt.Sprintf(`SELECT id, type, guildID, executorID, victimID, msg FROM reports WHERE guildID = "%s"`, guildID)
 	if memberID != "" {
 		query += fmt.Sprintf(` AND victimID = "%s"`, memberID)
 	}
@@ -309,7 +309,7 @@ func (m *Sqlite) GetReportsFiltered(guildID, memberID string, repType int) ([]*u
 }
 
 func (m *Sqlite) GetVotes() (map[string]*util.Vote, error) {
-	rows, err := m.DB.Query("SELECT * FROM votes")
+	rows, err := m.DB.Query("SELECT id, data FROM votes")
 	results := make(map[string]*util.Vote)
 	if err != nil {
 		return nil, err
@@ -336,12 +336,12 @@ func (m *Sqlite) AddUpdateVote(vote *util.Vote) error {
 	if err != nil {
 		return err
 	}
-	res, err := m.DB.Exec("UPDATE votes SET data = ? WHERE ID = ?", rawData, vote.ID)
+	res, err := m.DB.Exec("UPDATE votes SET data = ? WHERE id = ?", rawData, vote.ID)
 	if ar, err := res.RowsAffected(); ar == 0 {
 		if err != nil {
 			return err
 		}
-		_, err := m.DB.Exec("INSERT INTO votes (ID, data) VALUES (?, ?)", vote.ID, rawData)
+		_, err := m.DB.Exec("INSERT INTO votes (id, data) VALUES (?, ?)", vote.ID, rawData)
 		if err != nil {
 			return err
 		}
@@ -352,7 +352,7 @@ func (m *Sqlite) AddUpdateVote(vote *util.Vote) error {
 }
 
 func (m *Sqlite) DeleteVote(voteID string) error {
-	_, err := m.DB.Exec("DELETE FROM votes WHERE ID = ?", voteID)
+	_, err := m.DB.Exec("DELETE FROM votes WHERE id = ?", voteID)
 	return err
 }
 
@@ -451,8 +451,16 @@ func (m *Sqlite) DeleteBackup(guildID, fileID string) error {
 	return err
 }
 
+func (m *Sqlite) GetGuildInviteBlock(guildID string) (string, error) {
+	return m.getGuildSetting(guildID, "inviteBlock")
+}
+
+func (m *Sqlite) SetGuildInviteBlock(guildID string, data string) error {
+	return m.setGuildSetting(guildID, "inviteBlock", data)
+}
+
 func (m *Sqlite) GetBackups(guildID string) ([]*BackupEntry, error) {
-	rows, err := m.DB.Query("SELECT * FROM backups WHERE guildID = ?", guildID)
+	rows, err := m.DB.Query("SELECT guildID, timestamp, fileID FROM backups WHERE guildID = ?", guildID)
 	if err == sql.ErrNoRows {
 		return nil, ErrDatabaseNotFound
 	}
