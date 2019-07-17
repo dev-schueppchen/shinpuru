@@ -16,6 +16,7 @@ import (
 
 var (
 	flagConfigLocation = flag.String("c", "config.yml", "The location of the main config file")
+	flagDocker         = flag.Bool("docker", false, "wether shinpuru is running in a docker container or not")
 )
 
 func main() {
@@ -33,6 +34,13 @@ func main() {
 
 	config := inits.InitConfig(*flagConfigLocation, new(core.YAMLConfigParser))
 
+	if *flagDocker {
+		if config.Database.Sqlite == nil {
+			config.Database.Sqlite = new(core.ConfigDatabaseFile)
+		}
+		config.Database.Sqlite.DBFile = "/etc/db/db.sqlite3"
+	}
+
 	util.SetLogLevel(config.Logging.LogLevel)
 
 	database := inits.InitDatabase(config.Database)
@@ -42,8 +50,11 @@ func main() {
 	}()
 
 	tnw := inits.InitTwitchNotifyer(session, config, database)
-	cmdHandler := inits.InitCommandHandler(session, config, database, tnw)
-	inits.InitDiscordBotSession(session, config, database, cmdHandler)
+
+	lct := inits.InitLTCTimer()
+
+	cmdHandler := inits.InitCommandHandler(session, config, database, tnw, lct)
+	inits.InitDiscordBotSession(session, config, database, cmdHandler, lct)
 	defer func() {
 		util.Log.Info("Shutting down bot session...")
 		session.Close()

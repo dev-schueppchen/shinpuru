@@ -7,7 +7,7 @@
     </strong><br><br>
     <a href="https://dc.zekro.de"><img height="28" src="https://img.shields.io/discord/307084334198816769.svg?style=for-the-badge&logo=discord" /></a>&nbsp;
     <a href="https://github.com/zekroTJA/shinpuru/releases"><img height="28" src="https://img.shields.io/github/tag/zekroTJA/shinpuru.svg?style=for-the-badge"/></a>&nbsp;
-    <img height="28" src="https://forthebadge.com/images/badges/60-percent-of-the-time-works-every-time.svg" />&nbsp;
+    <a href="https://cloud.docker.com/u/zekro/repository/docker/zekro/shinpuru"><img alt="Docker Cloud Automated build" src="https://img.shields.io/docker/cloud/automated/zekro/shinpuru.svg?color=cyan&logo=docker&logoColor=cyan&style=for-the-badge"></a>&nbsp;
     <img height="28" src="https://forthebadge.com/images/badges/built-with-grammas-recipe.svg">
 <br>
 </div>
@@ -18,6 +18,7 @@
 |--------|-------|
 | master | <a href="https://travis-ci.org/zekroTJA/shinpuru"><img src="https://travis-ci.org/zekroTJA/shinpuru.svg?branch=master" /></a> |
 | dev | <a href="https://travis-ci.org/zekroTJA/shinpuru"><img src="https://travis-ci.org/zekroTJA/shinpuru.svg?branch=dev" /></a> |
+| docker | <a href="https://cloud.docker.com/u/zekro/repository/docker/zekro/shinpuru"><img alt="Docker Cloud Build Status" src="https://img.shields.io/docker/cloud/build/zekro/shinpuru.svg"></a> |
 
 ---
 
@@ -108,11 +109,9 @@ Missing Teamspeaks voice activity log? Just specify a voice log channel with the
 
 ---
 
-# Development state
+# Docker
 
-This project is in a very early development state, so, currently, the bot is not available as 24/7 version. If you want to use this bot by yourself, pull the code by cloning the repository or download the assets as zip [here](https://github.com/zekroTJA/shinpuru/archive/master.zip).
-
-Then, get all dependencies and build the binary. After that, generate a config by starting the bot, fill in your data and go on ;)
+Read about how to self-host shinpuru using the provided Docker image in the [**wiki article**](https://github.com/zekroTJA/shinpuru/wiki/Docker).
 
 ---
 
@@ -129,7 +128,9 @@ Read about self-compiling in the [**wiki article**](https://github.com/zekroTJA/
 - [go-sql-driver/mysql](https://github.com/Go-SQL-Driver/MySQL/)
 - [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 - [op/go-logging](https://github.com/op/go-logging)
-
+- [dayvonjersen/vibrant](https://github.com/dayvonjersen/vibrant)
+- [bwmarrin/snowflake](https://github.com/bwmarrin/snowflake)
+- [gopkg.in/yaml.v2](https://gopkg.in/yaml.v2)
 
 Avatar of [御中元 魔法少女詰め合わせ](https://www.pixiv.net/member_illust.php?mode=medium&illust_id=44692506) from [瑞希](https://www.pixiv.net/member.php?id=137253).
 
