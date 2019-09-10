@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/zekroTJA/shinpuru/internal/core"
+	"github.com/zekroTJA/shinpuru/internal/shared"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/snowflake"
@@ -15,7 +16,6 @@ import (
 )
 
 type CmdReport struct {
-	PermLvl int
 }
 
 func (c *CmdReport) GetInvokes() []string {
@@ -42,12 +42,8 @@ func (c *CmdReport) GetGroup() string {
 	return GroupModeration
 }
 
-func (c *CmdReport) GetPermission() int {
-	return c.PermLvl
-}
-
-func (c *CmdReport) SetPermission(permLvl int) {
-	c.PermLvl = permLvl
+func (c *CmdReport) GetDomainName() string {
+	return "sp.guild.mod.report"
 }
 
 func (c *CmdReport) Exec(args *CommandArgs) error {
@@ -75,19 +71,19 @@ func (c *CmdReport) Exec(args *CommandArgs) error {
 			Color: util.ColorEmbedDefault,
 			Title: fmt.Sprintf("Reports for %s#%s",
 				victim.User.Username, victim.User.Discriminator),
+			Description: fmt.Sprintf("[**Here**](%s/guilds/%s/%s) you can find this users reports in the web interface.",
+				args.CmdHandler.config.WebServer.PublicAddr, args.Guild.ID, victim.User.ID),
 		}
-		reps, err := args.CmdHandler.db.GetReportsGuild(args.Guild.ID)
+		reps, err := args.CmdHandler.db.GetReportsFiltered(args.Guild.ID, victim.User.ID, -1)
 		if err != nil {
 			return err
 		}
 		if len(reps) == 0 {
-			emb.Description = "This user has a white west. :ok_hand:"
+			emb.Description += "\n\nThis user has a white west. :ok_hand:"
 		} else {
 			emb.Fields = make([]*discordgo.MessageEmbedField, 0)
 			for _, r := range reps {
-				if r.VictimID == victim.User.ID {
-					emb.Fields = append(emb.Fields, r.AsEmbedField())
-				}
+				emb.Fields = append(emb.Fields, r.AsEmbedField())
 			}
 		}
 		_, err = args.Session.ChannelMessageSendEmbed(args.Channel.ID, emb)
@@ -126,7 +122,6 @@ func (c *CmdReport) Exec(args *CommandArgs) error {
 		return err
 	}
 	repMsg := strings.Join(args.Args[msgOffset:], " ")
-	repID := util.NodesReport[repType].Generate()
 
 	var attachment string
 	repMsg, attachment = util.ExtractImageURLFromMessage(repMsg, args.Message.Attachments)
@@ -141,10 +136,6 @@ func (c *CmdReport) Exec(args *CommandArgs) error {
 					Name: "Victim",
 					Value: fmt.Sprintf("<@%s> (%s#%s)",
 						victim.User.ID, victim.User.Username, victim.User.Discriminator),
-				},
-				&discordgo.MessageEmbedField{
-					Name:  "ID",
-					Value: repID.String(),
 				},
 				&discordgo.MessageEmbedField{
 					Name:  "Type",
@@ -163,28 +154,21 @@ func (c *CmdReport) Exec(args *CommandArgs) error {
 		UserID:         args.User.ID,
 		DeleteMsgAfter: true,
 		AcceptFunc: func(msg *discordgo.Message) {
-			rep := &util.Report{
-				ID:            repID,
-				Type:          repType,
-				GuildID:       args.Guild.ID,
-				ExecutorID:    args.User.ID,
-				VictimID:      victim.User.ID,
-				Msg:           repMsg,
-				AttachmehtURL: attachment,
-			}
-			err = args.CmdHandler.db.AddReport(rep)
+			rep, err := shared.PushReport(
+				args.Session,
+				args.CmdHandler.db,
+				args.Guild.ID,
+				args.User.ID,
+				victim.User.ID,
+				repMsg,
+				attachment,
+				repType)
+
 			if err != nil {
 				util.SendEmbedError(args.Session, args.Channel.ID,
 					"Failed creating report: ```\n"+err.Error()+"\n```")
 			} else {
 				args.Session.ChannelMessageSendEmbed(args.Channel.ID, rep.AsEmbed())
-				if modlogChan, err := args.CmdHandler.db.GetGuildModLog(args.Guild.ID); err == nil {
-					args.Session.ChannelMessageSendEmbed(modlogChan, rep.AsEmbed())
-				}
-				dmChan, err := args.Session.UserChannelCreate(victim.User.ID)
-				if err == nil {
-					args.Session.ChannelMessageSendEmbed(dmChan.ID, rep.AsEmbed())
-				}
 			}
 		},
 	}

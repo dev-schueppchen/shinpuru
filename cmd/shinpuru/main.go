@@ -39,6 +39,7 @@ func main() {
 			config.Database.Sqlite = new(core.ConfigDatabaseFile)
 		}
 		config.Database.Sqlite.DBFile = "/etc/db/db.sqlite3"
+		config.WebServer.Addr = ":8080"
 	}
 
 	util.SetLogLevel(config.Logging.LogLevel)
@@ -59,6 +60,8 @@ func main() {
 		util.Log.Info("Shutting down bot session...")
 		session.Close()
 	}()
+
+	inits.InitWebServer(session, database, cmdHandler, config)
 
 	util.Log.Info("Started event loop. Stop with CTRL-C...")
 	sc := make(chan os.Signal, 1)

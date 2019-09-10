@@ -12,7 +12,6 @@ import (
 )
 
 type CmdLeaveMsg struct {
-	PermLvl int
 }
 
 func (c *CmdLeaveMsg) GetInvokes() []string {
@@ -24,7 +23,7 @@ func (c *CmdLeaveMsg) GetDescription() string {
 }
 
 func (c *CmdLeaveMsg) GetHelp() string {
-	return "`leavemsg msg <message>` - Set the message of the leave message." +
+	return "`leavemsg msg <message>` - Set the message of the leave message.\n" +
 		"`leavemsg channel <ChannelIdentifier>` - Set the channel where the message will be sent into.\n" +
 		"`leavemsg reset` - Reset and disable leave messages.\n\n" +
 		"`[user]` will be replaced with the user name and `[ment]` will be replaced with the users mention when used in message text."
@@ -34,12 +33,8 @@ func (c *CmdLeaveMsg) GetGroup() string {
 	return GroupGuildConfig
 }
 
-func (c *CmdLeaveMsg) GetPermission() int {
-	return c.PermLvl
-}
-
-func (c *CmdLeaveMsg) SetPermission(permLvl int) {
-	c.PermLvl = permLvl
+func (c *CmdLeaveMsg) GetDomainName() string {
+	return "sp.guild.config.leavemsg"
 }
 
 func (c *CmdLeaveMsg) Exec(args *CommandArgs) error {
@@ -125,7 +120,7 @@ func (c *CmdLeaveMsg) Exec(args *CommandArgs) error {
 	}
 
 	rmsg, err := util.SendEmbed(args.Session, args.Channel.ID,
-		resTxt, "", 0)
+		resTxt, "", util.ColorEmbedGreen)
 	util.DeleteMessageLater(args.Session, rmsg, 10*time.Second)
 	return err
 }
@@ -137,5 +132,5 @@ func (c *CmdLeaveMsg) checkReqArgs(args *CommandArgs, req int) (bool, error) {
 		util.DeleteMessageLater(args.Session, rmsg, 10*time.Second)
 		return false, err
 	}
-	return false, nil
+	return true, nil
 }

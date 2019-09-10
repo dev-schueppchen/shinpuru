@@ -12,7 +12,6 @@ import (
 )
 
 type CmdJoinMsg struct {
-	PermLvl int
 }
 
 func (c *CmdJoinMsg) GetInvokes() []string {
@@ -24,7 +23,7 @@ func (c *CmdJoinMsg) GetDescription() string {
 }
 
 func (c *CmdJoinMsg) GetHelp() string {
-	return "`joinmsg msg <message>` - Set the message of the join message." +
+	return "`joinmsg msg <message>` - Set the message of the join message.\n" +
 		"`joinmsg channel <ChannelIdentifier>` - Set the channel where the message will be sent into.\n" +
 		"`joinmsg reset` - Reset and disable join messages.\n\n" +
 		"`[user]` will be replaced with the user name and `[ment]` will be replaced with the users mention when used in message text."
@@ -34,12 +33,8 @@ func (c *CmdJoinMsg) GetGroup() string {
 	return GroupGuildConfig
 }
 
-func (c *CmdJoinMsg) GetPermission() int {
-	return c.PermLvl
-}
-
-func (c *CmdJoinMsg) SetPermission(permLvl int) {
-	c.PermLvl = permLvl
+func (c *CmdJoinMsg) GetDomainName() string {
+	return "sp.guild.config.joinmsg"
 }
 
 func (c *CmdJoinMsg) Exec(args *CommandArgs) error {
@@ -82,6 +77,7 @@ func (c *CmdJoinMsg) Exec(args *CommandArgs) error {
 
 	case "msg", "message", "text":
 		if ok, err := c.checkReqArgs(args, 2); !ok || err != nil {
+			fmt.Println(ok, err)
 			return err
 		}
 		if err = db.SetGuildJoinMsg(args.Guild.ID, chanID, argsJoined); err != nil {
@@ -137,5 +133,5 @@ func (c *CmdJoinMsg) checkReqArgs(args *CommandArgs, req int) (bool, error) {
 		util.DeleteMessageLater(args.Session, rmsg, 10*time.Second)
 		return false, err
 	}
-	return false, nil
+	return true, nil
 }

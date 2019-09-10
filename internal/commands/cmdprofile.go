@@ -27,15 +27,11 @@ func (c *CmdProfile) GetHelp() string {
 }
 
 func (c *CmdProfile) GetGroup() string {
-	return GroupEtc
+	return GroupChat
 }
 
-func (c *CmdProfile) GetPermission() int {
-	return c.PermLvl
-}
-
-func (c *CmdProfile) SetPermission(permLvl int) {
-	c.PermLvl = permLvl
+func (c *CmdProfile) GetDomainName() string {
+	return "sp.chat.profile"
 }
 
 func (c *CmdProfile) Exec(args *CommandArgs) error {
@@ -76,28 +72,16 @@ func (c *CmdProfile) Exec(args *CommandArgs) error {
 		return err
 	}
 
-	var permLvl int
-	if member.User.ID == args.CmdHandler.config.Discord.OwnerID {
-		permLvl = util.PermLvlBotOwner
-	} else if member.User.ID == args.Guild.OwnerID {
-		permLvl = util.PermLvlGuildOwner
-	} else {
-		permLvl, err = args.CmdHandler.db.GetMemberPermissionLevel(args.Session, args.Guild.ID, member.User.ID)
-		if err != nil {
-			return err
-		}
-	}
-
-	var repsOnRecord int
-	guildReps, err := args.CmdHandler.db.GetReportsGuild(args.Guild.ID)
+	perms, err := args.CmdHandler.GetPermissions(args.Session, args.Guild.ID, member.User.ID)
 	if err != nil {
 		return err
 	}
-	for _, grep := range guildReps {
-		if grep.VictimID == member.User.ID {
-			repsOnRecord++
-		}
+
+	guildReps, err := args.CmdHandler.db.GetReportsFiltered(args.Guild.ID, member.User.ID, -1)
+	if err != nil {
+		return err
 	}
+	repsOnRecord := len(guildReps)
 	repsOnRecordStr := "This user has a white vest :ok_hand:"
 	if repsOnRecord > 0 {
 		repsOnRecordStr = fmt.Sprintf("This user has **%d** reports on record on this guild.", repsOnRecord)
@@ -111,6 +95,8 @@ func (c *CmdProfile) Exec(args *CommandArgs) error {
 	embed := &discordgo.MessageEmbed{
 		Color: roleColor,
 		Title: fmt.Sprintf("Info about member %s#%s", member.User.Username, member.User.Discriminator),
+		Description: fmt.Sprintf("[**Here**](%s/guilds/%s/%s) you can find this users profile in the web interface.",
+			args.CmdHandler.config.WebServer.PublicAddr, args.Guild.ID, member.User.ID),
 		Thumbnail: &discordgo.MessageEmbedThumbnail{
 			URL: member.User.AvatarURL(""),
 		},
@@ -140,8 +126,8 @@ func (c *CmdProfile) Exec(args *CommandArgs) error {
 					"*failed parsing timestamp*"),
 			},
 			&discordgo.MessageEmbedField{
-				Name:  "Permission Level",
-				Value: fmt.Sprintf("`%d`", permLvl),
+				Name:  "Permissions",
+				Value: util.EnsureNotEmpty(strings.Join(perms, "\n"), "*no permissions defined*"),
 			},
 			&discordgo.MessageEmbedField{
 				Name:  "Reports",

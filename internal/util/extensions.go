@@ -11,6 +11,14 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+var (
+	rxNumber = regexp.MustCompile(`^\d+$`)
+)
+
+func IsNumber(str string) bool {
+	return rxNumber.MatchString(str)
+}
+
 func EnsureNotEmpty(str, def string) string {
 	if str == "" {
 		return def
@@ -62,6 +70,24 @@ func GetDiscordSnowflakeCreationTime(snowflake string) (time.Time, error) {
 	}
 	timestamp := (sfI >> 22) + 1420070400000
 	return time.Unix(timestamp/1000, timestamp), nil
+}
+
+func IsAdmin(g *discordgo.Guild, m *discordgo.Member) bool {
+	if m == nil || g == nil {
+		return false
+	}
+
+	for _, r := range g.Roles {
+		if r.Permissions&0x8 != 0 {
+			for _, mrID := range m.Roles {
+				if r.ID == mrID {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 // RolePosDiff : m1 position - m2 position
@@ -194,6 +220,10 @@ func FetchChannel(s *discordgo.Session, guildID, resolvable string, condition ..
 	checkFuncs := []func(*discordgo.Channel, string) bool{
 		func(r *discordgo.Channel, resolvable string) bool {
 			return r.ID == resolvable
+		},
+		func(r *discordgo.Channel, resolvable string) bool {
+			l := len(resolvable)
+			return l > 3 && r.ID == resolvable[2:l-1]
 		},
 		func(r *discordgo.Channel, resolvable string) bool {
 			return r.Name == resolvable

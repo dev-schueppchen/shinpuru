@@ -18,7 +18,6 @@
 |--------|-------|
 | master | <a href="https://travis-ci.org/zekroTJA/shinpuru"><img src="https://travis-ci.org/zekroTJA/shinpuru.svg?branch=master" /></a> |
 | dev | <a href="https://travis-ci.org/zekroTJA/shinpuru"><img src="https://travis-ci.org/zekroTJA/shinpuru.svg?branch=dev" /></a> |
-| docker | <a href="https://cloud.docker.com/u/zekro/repository/docker/zekro/shinpuru"><img alt="Docker Cloud Build Status" src="https://img.shields.io/docker/cloud/build/zekro/shinpuru.svg"></a> |
 
 ---
 
@@ -29,8 +28,6 @@ Here you can choose between the stable or canary version of shinpuru:
 <a href="https://discordapp.com/api/oauth2/authorize?client_id=524847123875889153&scope=bot&permissions=2080894065"><img src="https://img.shields.io/badge/%20-INVITE%20STABLE-0288D1.svg?style=for-the-badge&logo=discord" height="30" /></a>
 
 <a href="https://discordapp.com/api/oauth2/authorize?client_id=536916384026722314&scope=bot&permissions=2080894065"><img src="https://img.shields.io/badge/%20-INVITE%20CANARY-FFA726.svg?style=for-the-badge&logo=discord" height="30" /></a>
-
-> **Attention**<br>The canary version runs on the latest build pushed to the dev branch and can contain bugs! Also, the canary version is running on a separate database which is not included in my daily database backup.
 
 # Intro
 
@@ -43,6 +40,16 @@ Also, I want to use this project as a chance for me, to get some deeper into Go 
 # Features 
 
 In this [**wiki article**](https://github.com/zekroTJA/shinpuru/wiki/Commands), you can find an automatically generated list of all commands and their manuals.
+
+## Web Interface
+
+shinpuru also offers a web interface to view members profiles, reports, the guild mod log and also configure the guilds settings for shinpuru like mod log channel, voice log channel or join/leave messages and channels.
+
+> **ATTENTION:** This web interface should be considered as 'beta version' because it is in a very early release state. If you are running into bugs or if you have suggestions, please contribute them as issue or pull request. 
+
+![](https://i.zekro.de/chrome_2019-08-12_09-30-45.png)
+![](https://i.zekro.de/chrome_2019-08-12_09-34-04.png)
+![](https://i.zekro.de/chrome_2019-08-12_09-36-45.png)
 
 ## Moderation
 
